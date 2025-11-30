@@ -1,0 +1,5 @@
+{
+  "name": "TweetMind",
+  "description": "An intelligent tweet processor that transforms content into learning paths, news summaries, or creative inspiration using Gemini AI.",
+  "requestFramePermissions": []
+}
