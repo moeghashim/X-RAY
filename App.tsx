@@ -91,26 +91,39 @@ const App: React.FC = () => {
   const filteredItems = items.filter(i => i.category === activeTab);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-500 font-sans">
-      {view === 'home' ? (
-        <HomeView 
-          inputText={inputText}
-          setInputText={setInputText}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          handleSubmit={handleSubmit}
-          isProcessing={isProcessing}
-          items={items}
-          onNavigate={handleNavigateToTab}
-        />
-      ) : (
-        <ResultsView 
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          filteredItems={filteredItems}
-          onBack={handleGoHome}
-        />
-      )}
+    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+      {/* Premium Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        
+        {/* Soft Gradient Orbs */}
+        <div className="absolute left-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-400/20 blur-[120px]"></div>
+        <div className="absolute right-[-5%] bottom-[-5%] h-[500px] w-[500px] rounded-full bg-purple-400/20 blur-[120px]"></div>
+        <div className="absolute left-[40%] top-[40%] h-[300px] w-[300px] rounded-full bg-blue-400/10 blur-[100px]"></div>
+      </div>
+
+      <div className="relative z-10">
+        {view === 'home' ? (
+          <HomeView 
+            inputText={inputText}
+            setInputText={setInputText}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            handleSubmit={handleSubmit}
+            isProcessing={isProcessing}
+            items={items}
+            onNavigate={handleNavigateToTab}
+          />
+        ) : (
+          <ResultsView 
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            filteredItems={filteredItems}
+            onBack={handleGoHome}
+          />
+        )}
+      </div>
     </div>
   );
 };
@@ -137,12 +150,8 @@ const HomeView = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-fade-in relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/5 blur-3xl -z-10" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-purple-500/5 blur-3xl -z-10" />
-
-      <div className="w-full max-w-4xl flex flex-col items-center z-10 gap-12">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-fade-in">
+      <div className="w-full max-w-4xl flex flex-col items-center gap-12 py-10">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center p-4 bg-white rounded-2xl shadow-xl shadow-slate-200/50 mb-2 ring-1 ring-slate-100">
             <SparklesIcon className="w-8 h-8 text-indigo-600" />
@@ -286,12 +295,12 @@ const ResultsView = ({
   onBack: () => void 
 }) => {
   return (
-    <div className="flex flex-col min-h-screen animate-fade-in bg-slate-50/50">
+    <div className="flex flex-col min-h-screen animate-fade-in">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-30 border-b border-slate-200 shadow-sm">
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/60 supports-[backdrop-filter]:bg-white/60">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <button className="flex items-center gap-3 group" onClick={onBack}>
-            <div className="bg-white border border-slate-200 p-2 rounded-lg text-slate-500 group-hover:border-slate-300 group-hover:text-slate-800 transition-colors">
+            <div className="bg-white border border-slate-200 p-2 rounded-lg text-slate-500 group-hover:border-slate-300 group-hover:text-slate-800 transition-colors shadow-sm">
                <ArrowLeftIcon className="w-4 h-4" />
             </div>
             <span className="text-sm font-bold text-slate-500 group-hover:text-slate-800 transition-colors">Back to Home</span>
@@ -332,15 +341,15 @@ const ResultsView = ({
                     {activeTab === 'inspiration' && "Spark your creativity with new perspectives."}
                 </p>
              </div>
-             <div className="hidden md:block text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+             <div className="hidden md:block text-xs font-bold text-slate-400 bg-white/50 border border-slate-200/50 px-3 py-1 rounded-full backdrop-blur-sm">
                  {filteredItems.length} {filteredItems.length === 1 ? 'Result' : 'Results'}
              </div>
          </div>
 
          <div className="space-y-6">
           {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-              <div className="bg-slate-50 p-6 rounded-full mb-6">
+            <div className="flex flex-col items-center justify-center py-24 text-center bg-white/60 backdrop-blur-sm rounded-2xl border border-dashed border-slate-300/60">
+              <div className="bg-white p-6 rounded-full mb-6 shadow-sm ring-1 ring-slate-100">
                 {activeTab === 'learning' && <BookOpenIcon className="w-12 h-12 text-slate-300" />}
                 {activeTab === 'news' && <NewspaperIcon className="w-12 h-12 text-slate-300" />}
                 {activeTab === 'inspiration' && <LightbulbIcon className="w-12 h-12 text-slate-300" />}
@@ -365,7 +374,7 @@ const ResultsView = ({
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-2 flex justify-between items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 px-6 py-2 flex justify-between items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <NavButton 
           active={activeTab === 'learning'} 
           onClick={() => setActiveTab('learning')} 
