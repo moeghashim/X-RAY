@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { generateLearningPath, generateInspiration, generateNewsAnalysis } from './services/gemini';
 import { Category, TweetItem, LearningStep, InspirationData, NewsData } from './types';
+
+// Lazy load gemini service to avoid import errors at module load time
+const loadGeminiService = async () => {
+  const module = await import('./services/gemini');
+  return {
+    generateLearningPath: module.generateLearningPath,
+    generateInspiration: module.generateInspiration,
+    generateNewsAnalysis: module.generateNewsAnalysis,
+  };
+};
 import { BookOpenIcon, NewspaperIcon, LightbulbIcon, SendIcon, SparklesIcon, PlusIcon, LoaderIcon, ArrowLeftIcon, ChevronRightIcon, LayoutGridIcon, ArrowRightIcon } from './components/Icons';
 import { Card } from './components/Card';
 
@@ -53,13 +62,14 @@ const App: React.FC = () => {
     setView('results');
 
     try {
+      const geminiService = await loadGeminiService();
       let data;
       if (selectedCategory === 'learning') {
-        data = await generateLearningPath(newItem.originalText);
+        data = await geminiService.generateLearningPath(newItem.originalText);
       } else if (selectedCategory === 'inspiration') {
-        data = await generateInspiration(newItem.originalText);
+        data = await geminiService.generateInspiration(newItem.originalText);
       } else if (selectedCategory === 'news') {
-        data = await generateNewsAnalysis(newItem.originalText);
+        data = await geminiService.generateNewsAnalysis(newItem.originalText);
       }
 
       setItems(prev => prev.map(item => 
@@ -91,16 +101,21 @@ const App: React.FC = () => {
   const filteredItems = items.filter(i => i.category === activeTab);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-      {/* Premium Background Layer */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        
-        {/* Soft Gradient Orbs */}
-        <div className="absolute left-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-400/20 blur-[120px]"></div>
-        <div className="absolute right-[-5%] bottom-[-5%] h-[500px] w-[500px] rounded-full bg-purple-400/20 blur-[120px]"></div>
-        <div className="absolute left-[40%] top-[40%] h-[300px] w-[300px] rounded-full bg-blue-400/10 blur-[100px]"></div>
+    <div className="min-h-screen bg-transparent text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
+      {/* Creative Background Layer */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#F8FAFC]">
+        {/* Modern Geometric Pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+
+        {/* Organic Gradient Orbs - Blue & Teal Theme */}
+        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] rounded-full bg-blue-400/10 blur-[100px] mix-blend-multiply animate-pulse" style={{ animationDuration: '10s' }}></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-teal-400/10 blur-[80px] mix-blend-multiply"></div>
+        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] rounded-full bg-cyan-400/10 blur-[60px] mix-blend-multiply"></div>
       </div>
 
       <div className="relative z-10">
@@ -160,13 +175,10 @@ const HomeView = ({
           <p className="text-lg text-slate-500 max-w-md mx-auto leading-relaxed">Transform your tweets into structured knowledge, concise briefings, or creative sparks.</p>
         </div>
 
-        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Left Column: Input */}
+        <div className="w-full flex flex-col gap-8">
+            {/* Add Content Section */}
             <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                     <span className="bg-slate-900 text-white text-xs font-bold px-2 py-1 rounded">Step 1</span>
-                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add Content</h3>
-                </div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add Content</h3>
                 
                 <Card className="w-full p-2 shadow-xl shadow-indigo-100/50 border-indigo-50 relative bg-white">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-xl" />
@@ -202,9 +214,8 @@ const HomeView = ({
                     <button
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
-                      className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-slate-200 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="w-full bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-blue-200/50 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <div className="relative flex items-center gap-2">
                         {isProcessing ? (
                           <>
@@ -223,12 +234,9 @@ const HomeView = ({
                 </Card>
             </div>
 
-            {/* Right Column: Navigation */}
+            {/* Browse Library Section */}
             <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                     <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-1 rounded">Step 2</span>
-                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Browse Library</h3>
-                </div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Browse Library</h3>
 
                 <div className="grid gap-4">
                     <NavCategoryCardDetailed 
