@@ -25,9 +25,14 @@ export interface InspirationData {
 export interface TweetItem {
   id: string;
   originalText: string;
+  tweetUrl?: string;
+  tweetId?: string;
+  tweetAuthor?: string;
   category: Category;
   createdAt: number;
-  data?: LearningStep[] | NewsData | InspirationData;
+  learningData?: LearningStep[];
+  newsData?: NewsData;
+  inspirationData?: InspirationData;
   isLoading: boolean;
   error?: string;
 }

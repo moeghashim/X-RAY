@@ -1,104 +1,121 @@
-import React, { useState, useEffect } from 'react';
-import { Category, TweetItem, LearningStep, InspirationData, NewsData } from './types';
-
-// Lazy load gemini service to avoid import errors at module load time
-const loadGeminiService = async () => {
-  const module = await import('./services/gemini');
-  return {
-    generateLearningPath: module.generateLearningPath,
-    generateInspiration: module.generateInspiration,
-    generateNewsAnalysis: module.generateNewsAnalysis,
-  };
-};
-import { BookOpenIcon, NewspaperIcon, LightbulbIcon, SendIcon, SparklesIcon, PlusIcon, LoaderIcon, ArrowLeftIcon, ChevronRightIcon, LayoutGridIcon, ArrowRightIcon } from './components/Icons';
-import { Card } from './components/Card';
+import React, { useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { Tweet } from "react-tweet";
+import {
+  Category,
+  TweetItem,
+  LearningStep,
+  InspirationData,
+  NewsData,
+} from "./types";
+import {
+  BookOpenIcon,
+  NewspaperIcon,
+  LightbulbIcon,
+  SparklesIcon,
+  LoaderIcon,
+  ChevronRightIcon,
+  ArrowRightIcon,
+} from "./components/Icons";
+import { Card } from "./components/Card";
+import "react-tweet/theme.css";
 
 // Helper for date formatting
 const formatDate = (ts: number) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+const tweetUrlRegex =
+  /(https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/status\/\d+)/i;
+
+const extractTweetUrl = (text: string) => {
+  const match = text.match(tweetUrlRegex);
+  return match ? match[1] : undefined;
+};
+
+const CATEGORY_LIST: Category[] = ["learning", "news", "inspiration"];
+
+const getTweetIdFromUrl = (url?: string) => {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split("/");
+    return segments.pop()?.split("?")[0] ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const App: React.FC = () => {
   // State
-  const [view, setView] = useState<'home' | 'results'>('home');
   const [activeTab, setActiveTab] = useState<Category>('learning');
   const [inputText, setInputText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category>('learning');
-  const [items, setItems] = useState<TweetItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const librarySectionRef = useRef<HTMLDivElement | null>(null);
 
-  // Load from local storage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('tweetmind_items');
-    if (saved) {
-      try {
-        const parsedItems = JSON.parse(saved);
-        setItems(parsedItems);
-      } catch (e) {
-        console.error("Failed to load items", e);
-      }
+  const countsData = useQuery("items:counts");
+  const itemsData = useQuery("items:listByCategory", { category: activeTab });
+  const createAndAnalyze = useMutation("items:createAndAnalyze");
+
+  const counts: Record<Category, number> = {
+    learning: countsData?.learning ?? 0,
+    news: countsData?.news ?? 0,
+    inspiration: countsData?.inspiration ?? 0,
+  };
+
+  const normalizedItems: TweetItem[] = useMemo(() => {
+    if (!itemsData) return [];
+    return itemsData.map((item: any) => ({
+      id: item._id,
+      originalText: item.originalText,
+      tweetUrl: item.tweetUrl ?? undefined,
+      category: item.category,
+      createdAt: item.createdAt,
+      learningData: item.learningData ?? undefined,
+      newsData: item.newsData ?? undefined,
+      inspirationData: item.inspirationData ?? undefined,
+      isLoading: item.isLoading,
+      error: item.error ?? undefined,
+    }));
+  }, [itemsData]);
+
+  const isLibraryLoading = itemsData === undefined;
+
+  const scrollToLibrary = () => {
+    if (librarySectionRef.current) {
+      librarySectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }
-  }, []);
-
-  // Save to local storage on change
-  useEffect(() => {
-    localStorage.setItem('tweetmind_items', JSON.stringify(items));
-  }, [items]);
+  };
 
   const handleSubmit = async () => {
-    if (!inputText.trim()) return;
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
 
-    const newItem: TweetItem = {
-      id: Date.now().toString(),
-      originalText: inputText,
-      category: selectedCategory,
-      createdAt: Date.now(),
-      isLoading: true,
-    };
-
-    setItems(prev => [newItem, ...prev]);
-    setInputText('');
+    const tweetUrl = extractTweetUrl(trimmed);
     setIsProcessing(true);
-    
     setActiveTab(selectedCategory);
-    setView('results');
+    scrollToLibrary();
 
     try {
-      const geminiService = await loadGeminiService();
-      let data;
-      if (selectedCategory === 'learning') {
-        data = await geminiService.generateLearningPath(newItem.originalText);
-      } else if (selectedCategory === 'inspiration') {
-        data = await geminiService.generateInspiration(newItem.originalText);
-      } else if (selectedCategory === 'news') {
-        data = await geminiService.generateNewsAnalysis(newItem.originalText);
-      }
-
-      setItems(prev => prev.map(item => 
-        item.id === newItem.id 
-          ? { ...item, isLoading: false, data: data } 
-          : item
-      ));
+      await createAndAnalyze({
+        originalText: trimmed,
+        tweetUrl,
+        category: selectedCategory,
+      });
+      setInputText("");
     } catch (error) {
-      setItems(prev => prev.map(item => 
-        item.id === newItem.id 
-          ? { ...item, isLoading: false, error: "Failed to process content. Please try again." } 
-          : item
-      ));
+      console.error("Failed to analyze content", error);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleGoHome = () => {
-    setView('home');
-    setInputText('');
-  };
-
   const handleNavigateToTab = (category: Category) => {
     setActiveTab(category);
-    setView('results');
+    scrollToLibrary();
   };
-
-  const filteredItems = items.filter(i => i.category === activeTab);
 
   return (
     <div className="min-h-screen bg-transparent text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
@@ -119,25 +136,21 @@ const App: React.FC = () => {
       </div>
 
       <div className="relative z-10">
-        {view === 'home' ? (
-          <HomeView 
-            inputText={inputText}
-            setInputText={setInputText}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            handleSubmit={handleSubmit}
-            isProcessing={isProcessing}
-            items={items}
-            onNavigate={handleNavigateToTab}
-          />
-        ) : (
-          <ResultsView 
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            filteredItems={filteredItems}
-            onBack={handleGoHome}
-          />
-        )}
+        <HomeView 
+          inputText={inputText}
+          setInputText={setInputText}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          handleSubmit={handleSubmit}
+          isProcessing={isProcessing}
+          counts={counts}
+          onNavigate={handleNavigateToTab}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          items={normalizedItems}
+          isLibraryLoading={isLibraryLoading}
+          libraryRef={librarySectionRef}
+        />
       </div>
     </div>
   );
@@ -145,24 +158,35 @@ const App: React.FC = () => {
 
 // --- View Components ---
 
-const HomeView = ({ 
-  inputText, setInputText, selectedCategory, setSelectedCategory, handleSubmit, isProcessing, items, onNavigate 
+const HomeView = ({
+  inputText,
+  setInputText,
+  selectedCategory,
+  setSelectedCategory,
+  handleSubmit,
+  isProcessing,
+  counts,
+  onNavigate,
+  activeTab,
+  setActiveTab,
+  items,
+  isLibraryLoading,
+  libraryRef,
 }: {
-  inputText: string, 
-  setInputText: (s: string) => void, 
-  selectedCategory: Category, 
-  setSelectedCategory: (c: Category) => void,
-  handleSubmit: () => void,
-  isProcessing: boolean,
-  items: TweetItem[],
-  onNavigate: (category: Category) => void
+  inputText: string;
+  setInputText: (s: string) => void;
+  selectedCategory: Category;
+  setSelectedCategory: (c: Category) => void;
+  handleSubmit: () => void;
+  isProcessing: boolean;
+  counts: Record<Category, number>;
+  onNavigate: (category: Category) => void;
+  activeTab: Category;
+  setActiveTab: (category: Category) => void;
+  items: TweetItem[];
+  isLibraryLoading: boolean;
+  libraryRef: React.RefObject<HTMLDivElement>;
 }) => {
-  
-  const counts = {
-    learning: items.filter(i => i.category === 'learning').length,
-    news: items.filter(i => i.category === 'news').length,
-    inspiration: items.filter(i => i.category === 'inspiration').length,
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-fade-in">
@@ -191,7 +215,7 @@ const HomeView = ({
                   
                   <div className="px-4 pb-4">
                     <div className="grid grid-cols-3 gap-3 mb-6">
-                      {(['learning', 'news', 'inspiration'] as Category[]).map(cat => (
+                      {CATEGORY_LIST.map(cat => (
                         <button
                           key={cat}
                           onClick={() => setSelectedCategory(cat)}
@@ -246,6 +270,7 @@ const HomeView = ({
                       icon={<BookOpenIcon className="w-6 h-6" />}
                       colorClass="text-indigo-600 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white"
                       onClick={() => onNavigate('learning')}
+                      isActive={activeTab === 'learning'}
                     />
                     <NavCategoryCardDetailed 
                       title="News Briefings" 
@@ -254,6 +279,7 @@ const HomeView = ({
                       icon={<NewspaperIcon className="w-6 h-6" />}
                       colorClass="text-blue-600 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white"
                       onClick={() => onNavigate('news')}
+                      isActive={activeTab === 'news'}
                     />
                     <NavCategoryCardDetailed 
                       title="Inspiration Board" 
@@ -262,19 +288,31 @@ const HomeView = ({
                       icon={<LightbulbIcon className="w-6 h-6" />}
                       colorClass="text-purple-600 bg-purple-50 group-hover:bg-purple-600 group-hover:text-white"
                       onClick={() => onNavigate('inspiration')}
+                      isActive={activeTab === 'inspiration'}
                     />
                 </div>
             </div>
+
+            <LibrarySection
+              ref={libraryRef}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              items={items}
+              isLoading={isLibraryLoading}
+            />
         </div>
       </div>
     </div>
   );
 };
 
-const NavCategoryCardDetailed = ({ title, description, count, icon, colorClass, onClick }: { title: string, description: string, count: number, icon: React.ReactNode, colorClass: string, onClick: () => void }) => (
+const NavCategoryCardDetailed = ({ title, description, count, icon, colorClass, onClick, isActive = false }: { title: string, description: string, count: number, icon: React.ReactNode, colorClass: string, onClick: () => void, isActive?: boolean }) => (
   <button 
     onClick={onClick}
-    className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group flex items-center justify-between text-left w-full hover:border-indigo-200 relative overflow-hidden"
+    aria-pressed={isActive}
+    className={`bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group flex items-center justify-between text-left w-full hover:border-indigo-200 relative overflow-hidden ${
+      isActive ? 'ring-2 ring-indigo-100 shadow-lg' : ''
+    }`}
   >
     <div className="flex items-center gap-4 relative z-10">
       <div className={`p-3.5 rounded-2xl transition-colors duration-300 ${colorClass} shadow-sm`}>
@@ -294,129 +332,107 @@ const NavCategoryCardDetailed = ({ title, description, count, icon, colorClass, 
   </button>
 );
 
-const ResultsView = ({ 
-  activeTab, setActiveTab, filteredItems, onBack 
-}: { 
-  activeTab: Category, 
-  setActiveTab: (c: Category) => void, 
-  filteredItems: TweetItem[], 
-  onBack: () => void 
-}) => {
-  return (
-    <div className="flex flex-col min-h-screen animate-fade-in">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/60 supports-[backdrop-filter]:bg-white/60">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button className="flex items-center gap-3 group" onClick={onBack}>
-            <div className="bg-white border border-slate-200 p-2 rounded-lg text-slate-500 group-hover:border-slate-300 group-hover:text-slate-800 transition-colors shadow-sm">
-               <ArrowLeftIcon className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-bold text-slate-500 group-hover:text-slate-800 transition-colors">Back to Home</span>
-          </button>
-          
-          {/* Desktop Tabs */}
-          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 h-full items-end gap-8">
-            {(['learning', 'news', 'inspiration'] as Category[]).map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveTab(cat)}
-                className={`pb-4 px-1 text-sm font-bold capitalize border-b-[3px] transition-all flex items-center gap-2 ${
-                  activeTab === cat 
-                    ? 'border-indigo-600 text-indigo-600' 
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                {cat === 'learning' && <BookOpenIcon className="w-4 h-4" />}
-                {cat === 'news' && <NewspaperIcon className="w-4 h-4" />}
-                {cat === 'inspiration' && <LightbulbIcon className="w-4 h-4" />}
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-20"></div> {/* Spacer for balance */}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 md:pb-12 pb-24">
-         <div className="flex items-end justify-between mb-8">
-             <div>
-                <h2 className="text-2xl font-bold text-slate-900 capitalize mb-1">{activeTab} Library</h2>
-                <p className="text-slate-500 text-sm">
-                    {activeTab === 'learning' && "Master complex topics with the Feynman technique."}
-                    {activeTab === 'news' && "Stay updated with concise summaries and sources."}
-                    {activeTab === 'inspiration' && "Spark your creativity with new perspectives."}
-                </p>
-             </div>
-             <div className="hidden md:block text-xs font-bold text-slate-400 bg-white/50 border border-slate-200/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                 {filteredItems.length} {filteredItems.length === 1 ? 'Result' : 'Results'}
-             </div>
-         </div>
-
-         <div className="space-y-6">
-          {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center bg-white/60 backdrop-blur-sm rounded-2xl border border-dashed border-slate-300/60">
-              <div className="bg-white p-6 rounded-full mb-6 shadow-sm ring-1 ring-slate-100">
-                {activeTab === 'learning' && <BookOpenIcon className="w-12 h-12 text-slate-300" />}
-                {activeTab === 'news' && <NewspaperIcon className="w-12 h-12 text-slate-300" />}
-                {activeTab === 'inspiration' && <LightbulbIcon className="w-12 h-12 text-slate-300" />}
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">No {activeTab} items yet</h3>
-              <p className="text-slate-500 max-w-xs mx-auto mb-6">Go back to the home screen to add new content to your {activeTab} library.</p>
-              <button 
-                onClick={onBack} 
-                className="px-6 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
-              >
-                Add Content
-              </button>
-            </div>
-          ) : (
-            filteredItems.map(item => (
-              <div key={item.id} className="animate-fade-in-up">
-                 <ContentCard item={item} />
-              </div>
-            ))
-          )}
-        </div>
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-slate-200 px-6 py-2 flex justify-between items-center z-40 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <NavButton 
-          active={activeTab === 'learning'} 
-          onClick={() => setActiveTab('learning')} 
-          icon={<BookOpenIcon className="w-6 h-6" />} 
-          label="Learning" 
-        />
-        <NavButton 
-          active={activeTab === 'news'} 
-          onClick={() => setActiveTab('news')} 
-          icon={<NewspaperIcon className="w-6 h-6" />} 
-          label="News" 
-        />
-        <NavButton 
-          active={activeTab === 'inspiration'} 
-          onClick={() => setActiveTab('inspiration')} 
-          icon={<LightbulbIcon className="w-6 h-6" />} 
-          label="Inspiration" 
-        />
-      </nav>
-    </div>
-  );
+const TAB_DESCRIPTIONS: Record<Category, string> = {
+  learning: "Master complex topics with the Feynman technique.",
+  news: "Stay updated with concise summaries and sources.",
+  inspiration: "Spark your creativity with new perspectives.",
 };
 
-// --- Sub Components ---
+const LibrarySection = React.forwardRef<
+  HTMLDivElement,
+  {
+    activeTab: Category;
+    setActiveTab: (c: Category) => void;
+    items: TweetItem[];
+    isLoading: boolean;
+  }
+>(({ activeTab, setActiveTab, items, isLoading }, ref) => (
+  <section ref={ref} className="space-y-6">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+          Library
+        </h3>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 capitalize">
+              {activeTab} Library
+            </h2>
+            <p className="text-slate-500 text-sm">
+              {TAB_DESCRIPTIONS[activeTab]}
+            </p>
+          </div>
+          <div className="text-xs font-bold text-slate-500 bg-white/70 border border-slate-200/70 px-3 py-1 rounded-full backdrop-blur-sm self-start md:self-auto">
+            {items.length} {items.length === 1 ? "Result" : "Results"}
+          </div>
+        </div>
+      </div>
 
-const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
-  <button 
-    onClick={onClick}
-    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-20 ${active ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
-  >
-    {icon}
-    <span className="text-[10px] font-bold">{label}</span>
-  </button>
-);
+      <div className="flex flex-wrap gap-3">
+        {CATEGORY_LIST.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveTab(cat)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold capitalize transition-all ${
+              activeTab === cat
+                ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
+                : "bg-white border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-slate-700"
+            }`}
+          >
+            {cat === "learning" && <BookOpenIcon className="w-4 h-4" />}
+            {cat === "news" && <NewspaperIcon className="w-4 h-4" />}
+            {cat === "inspiration" && <LightbulbIcon className="w-4 h-4" />}
+            {cat}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="space-y-6">
+      {isLoading ? (
+        Array.from({ length: 2 }).map((_, idx) => (
+          <Card key={idx} className="p-6 animate-pulse space-y-4">
+            <div className="h-4 w-32 bg-slate-200 rounded" />
+            <div className="h-3 w-24 bg-slate-100 rounded" />
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-slate-100 rounded" />
+              <div className="h-4 w-5/6 bg-slate-100 rounded" />
+              <div className="h-4 w-2/3 bg-slate-100 rounded" />
+            </div>
+          </Card>
+        ))
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-white/80 backdrop-blur-sm rounded-2xl border border-dashed border-slate-300/60">
+          <div className="bg-white p-6 rounded-full mb-6 shadow-sm ring-1 ring-slate-100">
+            {activeTab === "learning" && (
+              <BookOpenIcon className="w-12 h-12 text-slate-300" />
+            )}
+            {activeTab === "news" && (
+              <NewspaperIcon className="w-12 h-12 text-slate-300" />
+            )}
+            {activeTab === "inspiration" && (
+              <LightbulbIcon className="w-12 h-12 text-slate-300" />
+            )}
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">
+            No {activeTab} items yet
+          </h3>
+          <p className="text-slate-500 max-w-xs mx-auto">
+            Add content from the main section above to populate this library.
+          </p>
+        </div>
+      ) : (
+        items.map((item) => (
+          <div key={item.id} className="animate-fade-in-up">
+            <ContentCard item={item} />
+          </div>
+        ))
+      )}
+    </div>
+  </section>
+));
+
+LibrarySection.displayName = "LibrarySection";
 
 const ContentCard = ({ item }: { item: TweetItem }) => {
   if (item.isLoading) {
@@ -458,20 +474,49 @@ const ContentCard = ({ item }: { item: TweetItem }) => {
                     {formatDate(item.createdAt)}
                 </span>
              </div>
-             <p className="text-slate-700 font-medium leading-relaxed italic opacity-90">"{item.originalText}"</p>
+             {item.tweetUrl && (
+               <div className="mb-4">
+                 <TweetEmbed tweetUrl={item.tweetUrl} />
+               </div>
+             )}
+             <p className="text-slate-700 font-medium leading-relaxed italic opacity-90">
+               "{item.originalText}"
+             </p>
         </div>
       </div>
       
       <div className="p-6">
-        {item.category === 'learning' && <LearningView data={item.data as LearningStep[]} />}
-        {item.category === 'news' && <NewsView data={item.data as NewsData} />}
-        {item.category === 'inspiration' && <InspirationView data={item.data as InspirationData} />}
+        {item.category === 'learning' && <LearningView data={item.learningData} />}
+        {item.category === 'news' && <NewsView data={item.newsData} />}
+        {item.category === 'inspiration' && <InspirationView data={item.inspirationData} />}
       </div>
     </Card>
   );
 };
 
-const LearningView = ({ data }: { data: LearningStep[] }) => {
+const TweetEmbed = ({ tweetUrl }: { tweetUrl: string }) => {
+  const tweetId = getTweetIdFromUrl(tweetUrl);
+  if (!tweetId) {
+    return (
+      <a
+        href={tweetUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm text-indigo-600 hover:underline"
+      >
+        View tweet
+      </a>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden text-slate-900">
+      <Tweet id={tweetId} />
+    </div>
+  );
+};
+
+const LearningView = ({ data }: { data?: LearningStep[] }) => {
   if (!data || data.length === 0) return null;
   return (
     <div className="space-y-8">
@@ -507,7 +552,7 @@ const LearningView = ({ data }: { data: LearningStep[] }) => {
   );
 };
 
-const NewsView = ({ data }: { data: NewsData }) => {
+const NewsView = ({ data }: { data?: NewsData }) => {
   if (!data) return null;
   return (
     <div className="space-y-6">
@@ -568,7 +613,7 @@ const NewsView = ({ data }: { data: NewsData }) => {
   );
 };
 
-const InspirationView = ({ data }: { data: InspirationData }) => {
+const InspirationView = ({ data }: { data?: InspirationData }) => {
   const [revealed, setRevealed] = useState(false);
   
   if (!data) return null;
