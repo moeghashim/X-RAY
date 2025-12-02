@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { Tweet } from "react-tweet";
 import {
   Category,
@@ -54,7 +54,7 @@ const App: React.FC = () => {
 
   const countsData = useQuery("items:counts");
   const itemsData = useQuery("items:listByCategory", { category: activeTab });
-  const createAndAnalyze = useMutation("items:createAndAnalyze");
+  const createAndAnalyze = useAction("items:createAndAnalyze");
 
   const counts: Record<Category, number> = {
     learning: countsData?.learning ?? 0,

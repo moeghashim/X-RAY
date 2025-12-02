@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { Category } from "../../../../types";
 import { extractTweetUrl } from "../utils/tweet";
 import { RootStackParamList } from "../navigation/types";
@@ -23,7 +23,7 @@ const categoryOptions: Category[] = ["learning", "news", "inspiration"];
 
 export const HomeScreen = ({ navigation }: Props) => {
   const counts = useQuery("items:counts");
-  const createAndAnalyze = useMutation("items:createAndAnalyze");
+  const createAndAnalyze = useAction("items:createAndAnalyze");
   const [inputText, setInputText] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState<Category>("learning");
