@@ -1,19 +1,19 @@
 // Convex actions cannot import client-only utilities, so this module provides
-// a server-friendly Gemini helper that mirrors the prompts used in the UI.
+// a server-friendly OpenAI helper that replaces the Gemini implementation.
 import type { InspirationData, LearningStep, NewsData } from "../../types";
-import { GoogleGenAI } from "@google/genai";
 
-let cachedClient: InstanceType<typeof GoogleGenAI> | null = null;
+let cachedClient: any = null;
 
 const loadClient = () => {
   if (!cachedClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "GEMINI_API_KEY is not configured. Set it via Convex env variables."
+        "OPENAI_API_KEY is not configured. Set it via Convex env variables."
       );
     }
-    cachedClient = new GoogleGenAI({ apiKey });
+    // Use OpenAI API directly via fetch since we're in Convex
+    cachedClient = { apiKey };
   }
   return cachedClient;
 };
@@ -31,23 +31,44 @@ const parseJSONResponse = <T>(text: string): T => {
     if (fallback?.[0]) {
       return JSON.parse(fallback[0]);
     }
-    throw new Error("Gemini response could not be parsed as JSON.");
+    throw new Error("OpenAI response could not be parsed as JSON.");
   }
 };
 
-const readResponseText = (response: any) => {
-  if (!response) return "";
-  if (typeof response.text === "function") return response.text();
-  if (typeof response.response?.text === "function") {
-    return response.response.text();
+const callOpenAI = async (prompt: string, model: string = "gpt-5-mini") => {
+  const client = loadClient();
+  
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${client.apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI API error: ${response.status} ${error}`);
   }
-  return response.text ?? response.response?.text ?? "";
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "";
 };
 
 export const generateLearningPath = async (
   text: string
 ): Promise<LearningStep[]> => {
-  const client = loadClient();
   const prompt = `You are an expert educator using the Feynman Technique. Break down the following content into a 4-step learning path. Return ONLY valid JSON in this exact format:
 {
   "steps": [
@@ -69,12 +90,8 @@ Content to analyze:
 
 Return ONLY the JSON.`;
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.0-flash-exp",
-    contents: prompt,
-  });
-  const raw = await readResponseText(response);
-  if (!raw) throw new Error("No response text received from Gemini.");
+  const raw = await callOpenAI(prompt);
+  if (!raw) throw new Error("No response text received from OpenAI.");
   const parsed = parseJSONResponse<{ steps: LearningStep[] }>(raw);
   return parsed.steps;
 };
@@ -82,7 +99,6 @@ Return ONLY the JSON.`;
 export const generateInspiration = async (
   text: string
 ): Promise<InspirationData> => {
-  const client = loadClient();
   const prompt = `You are a creative content strategist. Analyze the following content and provide inspiration insights. Return ONLY valid JSON:
 {
   "tags": ["Tag1", "Tag2", "Tag3"],
@@ -93,22 +109,16 @@ export const generateInspiration = async (
 Tags should be 2-4 relevant categories. Context analysis should describe the emotional/psychological hooks. Suggested tweet must be original.
 
 Content:
-"${text}"
-`;
+"${text}"`;
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.0-flash-exp",
-    contents: prompt,
-  });
-  const raw = await readResponseText(response);
-  if (!raw) throw new Error("No response text received from Gemini.");
+  const raw = await callOpenAI(prompt);
+  if (!raw) throw new Error("No response text received from OpenAI.");
   return parseJSONResponse<InspirationData>(raw);
 };
 
 export const generateNewsAnalysis = async (
   text: string
 ): Promise<NewsData> => {
-  const client = loadClient();
   const prompt = `You are a news analyst. Convert the content below into a briefing. Return ONLY valid JSON:
 {
   "summary": "2-3 sentence summary",
@@ -123,17 +133,10 @@ export const generateNewsAnalysis = async (
 Provide 3-5 key points and 3 similar links (use "#" if real URLs are unavailable).
 
 Content:
-"${text}"
-`;
+"${text}"`;
 
-  const response = await client.models.generateContent({
-    model: "gemini-2.0-flash-exp",
-    contents: prompt,
-  });
-  const raw = await readResponseText(response);
-  if (!raw) throw new Error("No response text received from Gemini.");
+  const raw = await callOpenAI(prompt);
+  if (!raw) throw new Error("No response text received from OpenAI.");
   return parseJSONResponse<NewsData>(raw);
 };
-
-
 

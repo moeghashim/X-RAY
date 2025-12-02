@@ -1,18 +1,11 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_GEMINI_API_KEY?: string;
+  readonly VITE_CONVEX_URL?: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
-}
-
-declare namespace NodeJS {
-  interface ProcessEnv {
-    readonly GEMINI_API_KEY?: string;
-    readonly API_KEY?: string;
-  }
 }
 
 

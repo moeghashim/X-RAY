@@ -9,7 +9,7 @@
  */
 
 import type * as items from "../items.js";
-import type * as lib_gemini from "../lib/gemini.js";
+import type * as lib_openai from "../lib/openai.js";
 
 import type {
   ApiFromModules,
@@ -19,7 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   items: typeof items;
-  "lib/gemini": typeof lib_gemini;
+  "lib/openai": typeof lib_openai;
 }>;
 
 /**

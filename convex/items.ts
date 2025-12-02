@@ -6,7 +6,7 @@ import {
   generateInspiration,
   generateLearningPath,
   generateNewsAnalysis,
-} from "./lib/gemini";
+} from "./lib/openai";
 import type {
   Category,
   InspirationData,

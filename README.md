@@ -30,7 +30,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1xW5vWmBQTY8nhCjXTR-K9p
      ```ini
      VITE_CONVEX_URL=...
      ```
-   - Convex (server): `pnpm convex env set GEMINI_API_KEY "<your Gemini key>"`
+   - Convex (server): `pnpm convex env set OPENAI_API_KEY "<your OpenAI key>"`
 4. Run the web app:
    ```bash
    pnpm dev
