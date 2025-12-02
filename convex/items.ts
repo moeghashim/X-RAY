@@ -266,13 +266,17 @@ export const cleanupOldErrors = mutation({
       
       // Only clear errors that are specifically related to:
       // 1. Gemini API (old implementation)
-      // 2. Temperature parameter errors (must include both "temperature" and "0.7" or "does not support")
+      // 2. Temperature parameter errors - must match the specific OpenAI error pattern
       const isGeminiError = errorLower.includes("gemini") || errorLower.includes("generativelanguage.googleapis.com");
-      const isTemperatureError = errorLower.includes("temperature") && (
-        errorLower.includes("does not support") ||
-        errorLower.includes("unsupported value") ||
-        (errorLower.includes("0.7") && errorLower.includes("temperature"))
-      );
+      
+      // Match the specific OpenAI temperature error pattern to avoid false positives
+      // The actual error message is: "Unsupported value: 'temperature' does not support 0.7 with this model"
+      // We require ALL of these conditions to prevent matching unrelated errors containing "0.7"
+      const isTemperatureError = 
+        errorLower.includes("temperature") &&
+        (errorLower.includes("does not support") || errorLower.includes("unsupported value")) &&
+        errorLower.includes("0.7") &&
+        (errorLower.includes("with this model") || errorLower.includes("only the default"));
       
       if (isGeminiError || isTemperatureError) {
         await ctx.db.patch(item._id, {
