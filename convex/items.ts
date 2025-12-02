@@ -260,13 +260,21 @@ export const cleanupOldErrors = mutation({
     let cleaned = 0;
     
     for (const item of allItems) {
-      // Clear errors from items that have Gemini-related errors or temperature errors
-      if (item.error && (
-        item.error.includes("GEMINI") ||
-        item.error.includes("gemini") ||
-        item.error.includes("temperature") ||
-        item.error.includes("0.7")
-      )) {
+      if (!item.error) continue;
+      
+      const errorLower = item.error.toLowerCase();
+      
+      // Only clear errors that are specifically related to:
+      // 1. Gemini API (old implementation)
+      // 2. Temperature parameter errors (must include both "temperature" and "0.7" or "does not support")
+      const isGeminiError = errorLower.includes("gemini") || errorLower.includes("generativelanguage.googleapis.com");
+      const isTemperatureError = errorLower.includes("temperature") && (
+        errorLower.includes("does not support") ||
+        errorLower.includes("unsupported value") ||
+        (errorLower.includes("0.7") && errorLower.includes("temperature"))
+      );
+      
+      if (isGeminiError || isTemperatureError) {
         await ctx.db.patch(item._id, {
           error: undefined,
         });
