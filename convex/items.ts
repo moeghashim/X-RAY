@@ -253,4 +253,29 @@ export const createAndAnalyze = action({
   },
 });
 
+// Cleanup function to remove old error items or clear their errors
+export const cleanupOldErrors = mutation({
+  handler: async (ctx) => {
+    const allItems = await ctx.db.query("items").collect();
+    let cleaned = 0;
+    
+    for (const item of allItems) {
+      // Clear errors from items that have Gemini-related errors or temperature errors
+      if (item.error && (
+        item.error.includes("GEMINI") ||
+        item.error.includes("gemini") ||
+        item.error.includes("temperature") ||
+        item.error.includes("0.7")
+      )) {
+        await ctx.db.patch(item._id, {
+          error: undefined,
+        });
+        cleaned++;
+      }
+    }
+    
+    return { cleaned };
+  },
+});
+
 
