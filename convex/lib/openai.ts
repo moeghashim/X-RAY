@@ -53,7 +53,7 @@ const callOpenAI = async (prompt: string, model: string = "gpt-5-mini") => {
         },
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
+      // Note: GPT-5-mini only supports default temperature (1), custom values are not allowed
     }),
   });
 
