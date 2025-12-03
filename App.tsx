@@ -225,7 +225,18 @@ const HomeView = ({
                     <button
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
-                      className="w-full bg-black hover:bg-geist-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      style={{ backgroundColor: '#000000' }}
+                      onMouseEnter={(e) => {
+                        if (!e.currentTarget.disabled) {
+                          e.currentTarget.style.backgroundColor = '#1a1a1a';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!e.currentTarget.disabled) {
+                          e.currentTarget.style.backgroundColor = '#000000';
+                        }
+                      }}
                     >
                       <div className="relative flex items-center gap-2">
                         {isProcessing ? (
