@@ -225,10 +225,10 @@ const HomeView = ({
                     <button
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
-                      className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="analyze-content-btn w-full disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
                       style={{ 
-                        backgroundColor: '#000000 !important',
-                        background: '#000000 !important'
+                        backgroundColor: '#000000',
+                        background: '#000000'
                       }}
                       onMouseEnter={(e) => {
                         if (!e.currentTarget.disabled) {
