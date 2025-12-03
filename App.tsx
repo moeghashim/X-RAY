@@ -226,15 +226,18 @@ const HomeView = ({
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
                       className="w-full disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
-                      style={{ backgroundColor: '#000000' }}
+                      style={{ 
+                        backgroundColor: '#000000 !important',
+                        background: '#000000 !important'
+                      }}
                       onMouseEnter={(e) => {
                         if (!e.currentTarget.disabled) {
-                          e.currentTarget.style.backgroundColor = '#1a1a1a';
+                          e.currentTarget.style.setProperty('background-color', '#1a1a1a', 'important');
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!e.currentTarget.disabled) {
-                          e.currentTarget.style.backgroundColor = '#000000';
+                          e.currentTarget.style.setProperty('background-color', '#000000', 'important');
                         }
                       }}
                     >
