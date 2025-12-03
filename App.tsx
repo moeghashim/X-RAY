@@ -208,8 +208,8 @@ const HomeView = ({
                           onClick={() => setSelectedCategory(cat)}
                           className={`flex flex-col items-center gap-2 py-3 px-2 rounded-lg border transition-all duration-200 group relative overflow-hidden ${
                             selectedCategory === cat 
-                              ? 'bg-white border-[var(--ds-blue-400)] text-[var(--ds-blue-400)] shadow-md ring-2 ring-[var(--ds-blue-400)]' 
-                              : 'bg-white border-geist-border text-geist-muted-foreground hover:border-[var(--ds-blue-400)] hover:text-[var(--ds-blue-400)] focus:border-[var(--ds-blue-400)] focus:text-[var(--ds-blue-400)]'
+                              ? 'bg-[var(--ds-blue-400)] border-[var(--ds-blue-400)] text-white shadow-md ring-2 ring-[var(--ds-blue-400)]' 
+                              : 'bg-white border-geist-border text-geist-muted-foreground hover:bg-[var(--ds-blue-400)] hover:border-[var(--ds-blue-400)] hover:text-white focus:bg-[var(--ds-blue-400)] focus:border-[var(--ds-blue-400)] focus:text-white'
                           }`}
                         >
                           <div className={`transition-transform duration-300 ${selectedCategory === cat ? 'scale-110' : 'group-hover:scale-110'}`}>
