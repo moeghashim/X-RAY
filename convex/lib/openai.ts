@@ -35,7 +35,7 @@ const parseJSONResponse = <T>(text: string): T => {
   }
 };
 
-const callOpenAI = async (prompt: string, model: string = "gpt-5-mini") => {
+const callOpenAI = async (prompt: string, model: string = "gpt-4o-mini") => {
   const client = loadClient();
   
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -53,7 +53,6 @@ const callOpenAI = async (prompt: string, model: string = "gpt-5-mini") => {
         },
       ],
       response_format: { type: "json_object" },
-      // Note: GPT-5-mini only supports default temperature (1), custom values are not allowed
     }),
   });
 
@@ -138,5 +137,39 @@ Content:
   const raw = await callOpenAI(prompt);
   if (!raw) throw new Error("No response text received from OpenAI.");
   return parseJSONResponse<NewsData>(raw);
+};
+
+export const generateTweetBrief = async (text: string): Promise<string> => {
+  const prompt = `Generate a very brief summary (2-3 words maximum) that captures the essence of this tweet. Return ONLY valid JSON:
+{
+  "brief": "your brief summary here"
+}
+
+Rules:
+- The brief must be extremely concise (2-3 words only), informative, and capture the main topic or key point.
+- Do not include quotes, hashtags, emojis, punctuation, or mentions.
+- If the content looks like only a URL, parameters, or contains no meaningful text, respond with { "brief": "" }.
+- Never return placeholder text such as "URL Parameter" or "Link".
+
+Tweet content:
+"${text}"`;
+
+  const raw = await callOpenAI(prompt, "gpt-4o-mini");
+  if (!raw) throw new Error("No response text received from OpenAI.");
+  const parsed = parseJSONResponse<{ brief: string }>(raw);
+  const cleaned = parsed?.brief?.trim() ?? "";
+
+  if (
+    !cleaned ||
+    cleaned.length < 2 ||
+    /https?:\/\//i.test(cleaned) ||
+    /\b(url|link|parameter|status)\b/i.test(cleaned)
+  ) {
+    return "";
+  }
+
+  // Ensure 2-3 words at most
+  const words = cleaned.split(/\s+/).filter(Boolean).slice(0, 3);
+  return words.join(" ");
 };
 

@@ -6,6 +6,7 @@ import {
   generateInspiration,
   generateLearningPath,
   generateNewsAnalysis,
+  generateTweetBrief,
 } from "./lib/openai";
 import type {
   Category,
@@ -93,6 +94,7 @@ export const counts = query({
 type CreateDraftArgs = {
   originalText: string;
   tweetUrl?: string;
+  tweetBrief?: string;
   category: Category;
 };
 
@@ -100,12 +102,14 @@ export const createDraft = mutation({
   args: {
     originalText: v.string(),
     tweetUrl: v.optional(v.string()),
+    tweetBrief: v.optional(v.string()),
     category: CATEGORY,
   },
   handler: async (ctx, args) => {
     return ctx.db.insert("items", {
       originalText: args.originalText,
       tweetUrl: args.tweetUrl,
+      tweetBrief: args.tweetBrief,
       category: args.category,
       createdAt: Date.now(),
       isLoading: true,
@@ -190,11 +194,7 @@ export const createAndAnalyze = action({
   }> => {
     const explicitTweetUrl = args.tweetUrl ?? tweetUrlFromText(args.originalText);
     const cleanedText = removeTweetUrl(args.originalText, explicitTweetUrl);
-    const itemId = await ctx.runMutation(createDraftRef, {
-      originalText: args.originalText,
-      tweetUrl: explicitTweetUrl,
-      category: args.category,
-    });
+    let itemId: Id<"items"> | undefined;
 
     try {
       let textForAI = cleanedText;
@@ -204,6 +204,22 @@ export const createAndAnalyze = action({
       if (!textForAI) {
         throw new Error("Please include tweet text or a tweet link with content.");
       }
+
+      // Generate tweet brief for all categories
+      let tweetBrief: string | undefined;
+      try {
+        tweetBrief = await generateTweetBrief(textForAI);
+      } catch (briefError) {
+        console.error("Failed to generate tweet brief, continuing without it:", briefError);
+        // Continue without brief if generation fails
+      }
+
+      itemId = await ctx.runMutation(createDraftRef, {
+        originalText: args.originalText,
+        tweetUrl: explicitTweetUrl,
+        tweetBrief,
+        category: args.category,
+      });
 
       if (args.category === "learning") {
         const learningData = await generateLearningPath(textForAI);
@@ -238,15 +254,21 @@ export const createAndAnalyze = action({
       }
     } catch (error: any) {
       console.error("Failed to process content:", error);
-      await ctx.runMutation(finalizeRef, {
-        id: itemId,
-        patch: {
-          isLoading: false,
-          error:
-            error?.message ??
-            "Failed to process content. Please try again with a different tweet.",
-        },
-      });
+      if (itemId) {
+        await ctx.runMutation(finalizeRef, {
+          id: itemId,
+          patch: {
+            isLoading: false,
+            error:
+              error?.message ??
+              "Failed to process content. Please try again with a different tweet.",
+          },
+        });
+      }
+    }
+
+    if (!itemId) {
+      throw new Error("Failed to create item draft.");
     }
 
     return { id: itemId };
@@ -260,6 +282,19 @@ export const deleteItem = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
+  },
+});
+
+export const updateTweetBrief = mutation({
+  args: {
+    id: v.id("items"),
+    tweetBrief: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const trimmed = args.tweetBrief.trim();
+    await ctx.db.patch(args.id, {
+      tweetBrief: trimmed,
+    });
   },
 });
 

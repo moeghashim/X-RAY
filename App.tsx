@@ -80,6 +80,7 @@ const App: React.FC = () => {
       id: item._id,
       originalText: item.originalText,
       tweetUrl: item.tweetUrl ?? undefined,
+      tweetBrief: item.tweetBrief ?? undefined,
       category: item.category,
       createdAt: item.createdAt,
       learningData: item.learningData ?? undefined,
@@ -457,18 +458,52 @@ LibrarySection.displayName = "LibrarySection";
 
 const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: string) => Promise<void> }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isTweetExpanded, setIsTweetExpanded] = useState(false);
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      setIsDeleting(true);
-      try {
-        await onDelete(item.id);
-      } catch (error) {
-        console.error("Failed to delete item", error);
-        alert("Failed to delete item. Please try again.");
-        setIsDeleting(false);
-      }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete(item.id);
+    } catch (error) {
+      console.error("Failed to delete item", error);
+      alert("Failed to delete item. Please try again.");
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
+  };
+
+  const cancelDelete = () => {
+    if (!isDeleting) {
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const toggleTweetExpansion = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsTweetExpanded(!isTweetExpanded);
+  };
+
+  const getTweetPreview = (text: string, tweetUrl?: string): string => {
+    // Remove URLs from the text
+    let withoutUrls = text.replace(/https?:\/\/[^\s]+/g, '').trim();
+    // Also remove the specific tweet URL if provided
+    if (tweetUrl) {
+      withoutUrls = withoutUrls.replace(tweetUrl, '').trim();
+      // Also remove any Twitter/X URLs
+      withoutUrls = withoutUrls.replace(/https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[^\s]+/gi, '').trim();
+    }
+    // Get first 2-3 words for brief preview
+    const words = withoutUrls.split(/\s+/).filter(w => w.length > 0);
+    // If no text remains after removing URLs, show default
+    if (words.length === 0) return 'View Tweet';
+    // Return 2-3 words max
+    const previewWords = words.slice(0, 3);
+    return previewWords.join(' ') + (words.length > 3 ? '...' : '');
   };
 
   if (item.isLoading) {
@@ -508,6 +543,9 @@ const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: strin
     );
   }
 
+  const isLearningCategory = item.category === 'learning';
+  const showTweetAccordion = isLearningCategory && item.tweetUrl;
+
   return (
     <Card className="overflow-hidden group relative">
       <button
@@ -528,14 +566,39 @@ const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: strin
                     {formatDate(item.createdAt)}
                 </span>
              </div>
-             {item.tweetUrl && (
+             {showTweetAccordion ? (
+               <div className="mb-4">
+                 <button
+                   onClick={toggleTweetExpansion}
+                   className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all text-left group"
+                 >
+                   <span className="text-sm font-semibold text-slate-700 line-clamp-1">
+                     {item.tweetBrief?.trim() || getTweetPreview(item.originalText, item.tweetUrl) || 'View Tweet'}
+                   </span>
+                   <ChevronRightIcon 
+                     className={`w-5 h-5 text-slate-400 transition-transform duration-200 flex-shrink-0 ml-2 ${
+                       isTweetExpanded ? 'rotate-90' : ''
+                     }`} 
+                   />
+                 </button>
+                 <div 
+                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                     isTweetExpanded ? 'max-h-[2000px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+                   }`}
+                 >
+                   <TweetEmbed tweetUrl={item.tweetUrl!} />
+                 </div>
+               </div>
+             ) : item.tweetUrl ? (
                <div className="mb-4">
                  <TweetEmbed tweetUrl={item.tweetUrl} />
                </div>
+             ) : null}
+             {!showTweetAccordion && (
+               <p className="text-slate-700 font-medium leading-relaxed italic opacity-90">
+                 "{item.originalText}"
+               </p>
              )}
-             <p className="text-slate-700 font-medium leading-relaxed italic opacity-90">
-               "{item.originalText}"
-             </p>
         </div>
       </div>
       
@@ -544,6 +607,38 @@ const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: strin
         {item.category === 'news' && <NewsView data={item.newsData} />}
         {item.category === 'inspiration' && <InspirationView data={item.inspirationData} />}
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="space-y-2 text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+                <TrashIcon className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Delete this item?</h3>
+              <p className="text-sm text-slate-500">
+                This action cannot be undone. Are you sure you want to remove this entry from your library?
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={cancelDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 rounded-xl bg-red-600 text-white py-2.5 font-semibold hover:bg-red-500 transition disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
@@ -571,36 +666,55 @@ const TweetEmbed = ({ tweetUrl }: { tweetUrl: string }) => {
 };
 
 const LearningView = ({ data }: { data?: LearningStep[] }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   if (!data || data.length === 0) return null;
+  
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-           <BookOpenIcon className="w-5 h-5" />
-        </div>
-        <div>
+    <div className="space-y-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all text-left group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+            <BookOpenIcon className="w-5 h-5" />
+          </div>
+          <div>
             <h3 className="font-bold text-slate-900 text-lg">Feynman Breakdown</h3>
             <p className="text-xs text-slate-500">Simplified concept explanation</p>
-        </div>
-      </div>
-      <div className="relative border-l-2 border-indigo-100 pl-8 space-y-12 ml-3">
-        {data.map((step, idx) => (
-          <div key={idx} className="relative">
-             <div className="absolute -left-[43px] top-0 w-8 h-8 rounded-full bg-white border-2 border-indigo-600 text-indigo-600 flex items-center justify-center text-sm font-bold shadow-sm z-10">
-               {step.stepNumber}
-             </div>
-             <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-                <h4 className="text-lg font-bold text-slate-800 mb-2">{step.concept}</h4>
-                <p className="text-slate-600 mb-4 leading-relaxed">{step.explanation}</p>
-                <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg text-sm text-amber-900">
-                <span className="font-bold flex items-center gap-2 mb-1 text-amber-700 text-xs uppercase tracking-wide">
-                    <LightbulbIcon className="w-3 h-3" /> Analogy
-                </span>
-                {step.analogy}
-                </div>
-             </div>
           </div>
-        ))}
+        </div>
+        <ChevronRightIcon 
+          className={`w-5 h-5 text-slate-400 transition-transform duration-200 ${
+            isExpanded ? 'rotate-90' : ''
+          }`} 
+        />
+      </button>
+      <div 
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="relative border-l-2 border-indigo-100 pl-8 space-y-12 ml-3 pt-4">
+          {data.map((step, idx) => (
+            <div key={idx} className="relative">
+               <div className="absolute -left-[43px] top-0 w-8 h-8 rounded-full bg-white border-2 border-indigo-600 text-indigo-600 flex items-center justify-center text-sm font-bold shadow-sm z-10">
+                 {step.stepNumber}
+               </div>
+               <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-lg font-bold text-slate-800 mb-2">{step.concept}</h4>
+                  <p className="text-slate-600 mb-4 leading-relaxed">{step.explanation}</p>
+                  <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg text-sm text-amber-900">
+                  <span className="font-bold flex items-center gap-2 mb-1 text-amber-700 text-xs uppercase tracking-wide">
+                      <LightbulbIcon className="w-3 h-3" /> Analogy
+                  </span>
+                  {step.analogy}
+                  </div>
+               </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
