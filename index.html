@@ -62,14 +62,30 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8; 
       }
-      /* Force Analyze Content button to be pure black */
-      .analyze-content-btn {
+      /* Force Analyze Content button to be pure black - highest specificity */
+      #analyze-content-button,
+      button#analyze-content-button,
+      button.analyze-content-btn,
+      .analyze-content-btn,
+      button.analyze-content-btn:not(:disabled),
+      div button.analyze-content-btn,
+      div div button.analyze-content-btn {
         background-color: #000000 !important;
         background: #000000 !important;
+        background-image: none !important;
       }
+      #analyze-content-button:hover:not(:disabled),
+      button#analyze-content-button:hover:not(:disabled),
+      button.analyze-content-btn:hover:not(:disabled),
       .analyze-content-btn:hover:not(:disabled) {
         background-color: #1a1a1a !important;
         background: #1a1a1a !important;
+        background-image: none !important;
+      }
+      #analyze-content-button:disabled,
+      button#analyze-content-button:disabled {
+        background-color: #000000 !important;
+        opacity: 0.5 !important;
       }
     </style>
   <script type="importmap">
