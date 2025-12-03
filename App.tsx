@@ -120,7 +120,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-transparent text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
       {/* Creative Background Layer */}
-      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-[#F8FAFC]">
+        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden" style={{ backgroundColor: 'hsla(0,0%,92%,1)' }}>
         {/* Modern Geometric Pattern */}
         <div 
           className="absolute inset-0 opacity-[0.06]"
@@ -238,7 +238,7 @@ const HomeView = ({
                     <button
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
-                      className="w-full bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-blue-200/50 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="w-full bg-black hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-slate-200/50 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
                     >
                       <div className="relative flex items-center gap-2">
                         {isProcessing ? (
@@ -637,7 +637,7 @@ const InspirationView = ({ data }: { data?: InspirationData }) => {
          {!revealed ? (
             <button 
               onClick={() => setRevealed(true)}
-              className="w-full h-32 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl flex flex-col items-center justify-center text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 group overflow-hidden relative"
+              className="w-full h-32 bg-black hover:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 group overflow-hidden relative"
             >
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
