@@ -1,8 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import "geist/font/sans";
-import "geist/font/mono";
 import App from "./App";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
