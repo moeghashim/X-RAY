@@ -118,21 +118,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900 font-sans relative selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-      {/* Creative Background Layer */}
-        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden" style={{ backgroundColor: 'hsla(0,0%,92%,1)' }}>
-        {/* Modern Geometric Pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Organic Gradient Orbs - Blue & Teal Theme */}
-        <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] rounded-full bg-blue-400/10 blur-[100px] mix-blend-multiply animate-pulse" style={{ animationDuration: '10s' }}></div>
-        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-teal-400/10 blur-[80px] mix-blend-multiply"></div>
-        <div className="absolute top-[40%] left-[30%] w-[400px] h-[400px] rounded-full bg-cyan-400/10 blur-[60px] mix-blend-multiply"></div>
+    <div className="min-h-screen bg-white text-black font-sans relative selection:bg-black selection:text-white overflow-x-hidden">
+      {/* Geist Background Layer */}
+        <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden bg-white">
       </div>
 
       <div className="relative z-10">
@@ -192,25 +180,24 @@ const HomeView = ({
     <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-fade-in">
       <div className="w-full max-w-4xl flex flex-col items-center gap-12 py-10">
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-4 bg-white rounded-2xl shadow-xl shadow-slate-200/50 mb-2 ring-1 ring-slate-100">
-            <SparklesIcon className="w-8 h-8 text-indigo-600" />
+          <div className="inline-flex items-center justify-center p-4 bg-white rounded-lg border border-geist-border mb-2">
+            <SparklesIcon className="w-8 h-8 text-black" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">TweetMind</h1>
-          <p className="text-lg text-slate-500 max-w-md mx-auto leading-relaxed">Transform your tweets into structured knowledge, concise briefings, or creative sparks.</p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black">TweetMind</h1>
+          <p className="text-lg text-geist-muted-foreground max-w-md mx-auto leading-relaxed">Transform your tweets into structured knowledge, concise briefings, or creative sparks.</p>
         </div>
 
         <div className="w-full flex flex-col gap-8">
             {/* Add Content Section */}
             <div className="space-y-6">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add Content</h3>
+                <h3 className="text-sm font-semibold text-geist-muted-foreground uppercase tracking-wider">Add Content</h3>
                 
-                <Card className="w-full p-2 shadow-xl shadow-indigo-100/50 border-indigo-50 relative bg-white">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-xl" />
+                <Card className="w-full p-2 relative bg-white">
                   <textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder="Paste your content here to begin..."
-                    className="w-full bg-slate-50 border-0 rounded-lg p-6 text-lg text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-indigo-100 focus:bg-white transition-all h-40 resize-none mb-2"
+                    className="w-full bg-geist-muted border border-geist-input rounded-lg p-6 text-lg text-black placeholder-geist-muted-foreground focus:ring-2 focus:ring-black focus:bg-white focus:border-black transition-all h-40 resize-none mb-2"
                   />
                   
                   <div className="px-4 pb-4">
@@ -219,10 +206,10 @@ const HomeView = ({
                         <button
                           key={cat}
                           onClick={() => setSelectedCategory(cat)}
-                          className={`flex flex-col items-center gap-2 py-3 px-2 rounded-xl border transition-all duration-200 group relative overflow-hidden ${
+                          className={`flex flex-col items-center gap-2 py-3 px-2 rounded-lg border transition-all duration-200 group relative overflow-hidden ${
                             selectedCategory === cat 
-                              ? 'bg-slate-900 border-slate-900 text-white shadow-lg scale-[1.02]' 
-                              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50'
+                              ? 'bg-black border-black text-white shadow-md' 
+                              : 'bg-white border-geist-border text-geist-muted-foreground hover:border-black hover:bg-geist-muted'
                           }`}
                         >
                           <div className={`transition-transform duration-300 ${selectedCategory === cat ? 'scale-110' : 'group-hover:scale-110'}`}>
@@ -238,7 +225,7 @@ const HomeView = ({
                     <button
                       onClick={handleSubmit}
                       disabled={!inputText.trim() || isProcessing}
-                      className="w-full bg-black hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-base shadow-lg shadow-slate-200/50 transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="w-full bg-black hover:bg-geist-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-lg font-semibold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden"
                     >
                       <div className="relative flex items-center gap-2">
                         {isProcessing ? (
@@ -268,7 +255,6 @@ const HomeView = ({
                       description="Review your Feynman breakdowns and study guides."
                       count={counts.learning} 
                       icon={<BookOpenIcon className="w-6 h-6" />}
-                      colorClass="text-indigo-600 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white"
                       onClick={() => onNavigate('learning')}
                       isActive={activeTab === 'learning'}
                     />
@@ -277,7 +263,6 @@ const HomeView = ({
                       description="Access your summarized news and related articles."
                       count={counts.news} 
                       icon={<NewspaperIcon className="w-6 h-6" />}
-                      colorClass="text-blue-600 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white"
                       onClick={() => onNavigate('news')}
                       isActive={activeTab === 'news'}
                     />
@@ -286,7 +271,6 @@ const HomeView = ({
                       description="See your saved creative sparks and generated tweets."
                       count={counts.inspiration} 
                       icon={<LightbulbIcon className="w-6 h-6" />}
-                      colorClass="text-purple-600 bg-purple-50 group-hover:bg-purple-600 group-hover:text-white"
                       onClick={() => onNavigate('inspiration')}
                       isActive={activeTab === 'inspiration'}
                     />
@@ -306,28 +290,30 @@ const HomeView = ({
   );
 };
 
-const NavCategoryCardDetailed = ({ title, description, count, icon, colorClass, onClick, isActive = false }: { title: string, description: string, count: number, icon: React.ReactNode, colorClass: string, onClick: () => void, isActive?: boolean }) => (
+const NavCategoryCardDetailed = ({ title, description, count, icon, onClick, isActive = false }: { title: string, description: string, count: number, icon: React.ReactNode, onClick: () => void, isActive?: boolean }) => (
   <button 
     onClick={onClick}
     aria-pressed={isActive}
-    className={`bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all group flex items-center justify-between text-left w-full hover:border-indigo-200 relative overflow-hidden ${
-      isActive ? 'ring-2 ring-indigo-100 shadow-lg' : ''
+    className={`bg-white p-5 rounded-lg border border-geist-border shadow-sm hover:shadow-md transition-all group flex items-center justify-between text-left w-full hover:border-black relative overflow-hidden ${
+      isActive ? 'ring-2 ring-black bg-geist-muted' : ''
     }`}
   >
     <div className="flex items-center gap-4 relative z-10">
-      <div className={`p-3.5 rounded-2xl transition-colors duration-300 ${colorClass} shadow-sm`}>
+      <div className={`p-3.5 rounded-lg transition-colors duration-200 ${
+        isActive ? 'bg-black text-white' : 'bg-geist-muted text-black group-hover:bg-black group-hover:text-white'
+      }`}>
         {icon}
       </div>
       <div>
-        <h4 className="font-bold text-slate-900 text-base mb-1">{title}</h4>
-        <p className="text-xs text-slate-500 font-medium mb-1">{description}</p>
-        <span className="inline-block bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+        <h4 className="font-semibold text-black text-base mb-1">{title}</h4>
+        <p className="text-xs text-geist-muted-foreground font-medium mb-1">{description}</p>
+        <span className="inline-block bg-geist-muted text-geist-muted-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
             {count} {count === 1 ? 'Item' : 'Items'}
         </span>
       </div>
     </div>
-    <div className="p-2 bg-slate-50 rounded-full group-hover:bg-indigo-50 transition-colors">
-        <ArrowRightIcon className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+    <div className="p-2 bg-geist-muted rounded-full group-hover:bg-black transition-colors">
+        <ArrowRightIcon className="w-4 h-4 text-geist-muted-foreground group-hover:text-white transition-colors" />
     </div>
   </button>
 );
@@ -373,10 +359,10 @@ const LibrarySection = React.forwardRef<
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold capitalize transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold capitalize transition-all ${
               activeTab === cat
-                ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
-                : "bg-white border-slate-200 text-slate-500 hover:border-indigo-200 hover:text-slate-700"
+                ? "bg-black text-white border-black shadow-md"
+                : "bg-white border-geist-border text-geist-muted-foreground hover:border-black hover:text-black"
             }`}
           >
             {cat === "learning" && <BookOpenIcon className="w-4 h-4" />}
