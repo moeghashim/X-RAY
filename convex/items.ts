@@ -253,6 +253,16 @@ export const createAndAnalyze = action({
   },
 });
 
+// Delete an item
+export const deleteItem = mutation({
+  args: {
+    id: v.id("items"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});
+
 // Cleanup function to remove old error items or clear their errors
 export const cleanupOldErrors = mutation({
   handler: async (ctx) => {

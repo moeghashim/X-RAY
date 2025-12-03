@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import type { Id } from "./convex/_generated/dataModel";
 import { Tweet } from "react-tweet";
 import {
   Category,
@@ -16,6 +17,7 @@ import {
   LoaderIcon,
   ChevronRightIcon,
   ArrowRightIcon,
+  TrashIcon,
 } from "./components/Icons";
 import { Card } from "./components/Card";
 import "react-tweet/theme.css";
@@ -45,6 +47,11 @@ const getTweetIdFromUrl = (url?: string) => {
 };
 
 const App: React.FC = () => {
+  // Debug: Log that App component is rendering
+  useEffect(() => {
+    console.log("App component mounted and rendering");
+  }, []);
+  
   // State
   const [activeTab, setActiveTab] = useState<Category>('learning');
   const [inputText, setInputText] = useState('');
@@ -55,6 +62,11 @@ const App: React.FC = () => {
   const countsData = useQuery("items:counts");
   const itemsData = useQuery("items:listByCategory", { category: activeTab });
   const createAndAnalyze = useAction("items:createAndAnalyze");
+  const deleteItemMutation = useMutation("items:deleteItem");
+  
+  const deleteItem = async (id: string) => {
+    await deleteItemMutation({ id: id as Id<"items"> });
+  };
 
   const counts: Record<Category, number> = {
     learning: countsData?.learning ?? 0,
@@ -138,6 +150,7 @@ const App: React.FC = () => {
           items={normalizedItems}
           isLibraryLoading={isLibraryLoading}
           libraryRef={librarySectionRef}
+          onDeleteItem={deleteItem}
         />
       </div>
     </div>
@@ -160,6 +173,7 @@ const HomeView = ({
   items,
   isLibraryLoading,
   libraryRef,
+  onDeleteItem,
 }: {
   inputText: string;
   setInputText: (s: string) => void;
@@ -174,6 +188,7 @@ const HomeView = ({
   items: TweetItem[];
   isLibraryLoading: boolean;
   libraryRef: React.RefObject<HTMLDivElement>;
+  onDeleteItem: (id: string) => Promise<void>;
 }) => {
 
   return (
@@ -301,6 +316,7 @@ const HomeView = ({
               setActiveTab={setActiveTab}
               items={items}
               isLoading={isLibraryLoading}
+              onDeleteItem={onDeleteItem}
             />
         </div>
       </div>
@@ -349,8 +365,9 @@ const LibrarySection = React.forwardRef<
     setActiveTab: (c: Category) => void;
     items: TweetItem[];
     isLoading: boolean;
+    onDeleteItem: (id: string) => Promise<void>;
   }
->(({ activeTab, setActiveTab, items, isLoading }, ref) => (
+>(({ activeTab, setActiveTab, items, isLoading, onDeleteItem }, ref) => (
   <section ref={ref} className="space-y-6">
     <div className="space-y-4">
       <div className="flex flex-col gap-2">
@@ -428,7 +445,7 @@ const LibrarySection = React.forwardRef<
       ) : (
         items.map((item) => (
           <div key={item.id} className="animate-fade-in-up">
-            <ContentCard item={item} />
+            <ContentCard item={item} onDelete={onDeleteItem} />
           </div>
         ))
       )}
@@ -438,7 +455,22 @@ const LibrarySection = React.forwardRef<
 
 LibrarySection.displayName = "LibrarySection";
 
-const ContentCard = ({ item }: { item: TweetItem }) => {
+const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: string) => Promise<void> }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this item?")) {
+      setIsDeleting(true);
+      try {
+        await onDelete(item.id);
+      } catch (error) {
+        console.error("Failed to delete item", error);
+        alert("Failed to delete item. Please try again.");
+        setIsDeleting(false);
+      }
+    }
+  };
+
   if (item.isLoading) {
     return (
       <Card className="p-6">
@@ -458,16 +490,34 @@ const ContentCard = ({ item }: { item: TweetItem }) => {
   if (item.error) {
     return (
       <Card className="p-6 border-red-100 bg-red-50">
-        <p className="text-red-600 text-sm font-medium flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            {item.error}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-red-600 text-sm font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+              {item.error}
+          </p>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Delete item"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="overflow-hidden group">
+    <Card className="overflow-hidden group relative">
+      <button
+        onClick={handleDelete}
+        disabled={isDeleting}
+        className="absolute top-4 right-4 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+        title="Delete item"
+      >
+        <TrashIcon className="w-4 h-4" />
+      </button>
       <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="flex-1">
              <div className="flex items-center gap-2 mb-2">

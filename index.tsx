@@ -24,3 +24,6 @@ root.render(
     </ConvexProvider>
   </React.StrictMode>
 );
+
+// Log for debugging
+console.log("App mounted. Convex URL:", convexUrl || "NOT SET");

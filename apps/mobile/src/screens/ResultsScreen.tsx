@@ -11,7 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { Category, LearningStep, TweetItem } from "../../../../types";
 import { formatDate } from "../utils/tweet";
 import { RootStackParamList } from "../navigation/types";
@@ -35,6 +36,12 @@ export const ResultsScreen = ({ route }: Props) => {
   }, [route.params.category]);
 
   const items = useQuery("items:listByCategory", { category: activeTab });
+  const deleteItemMutation = useMutation("items:deleteItem");
+  
+  const deleteItem = async (id: string) => {
+    await deleteItemMutation({ id: id as Id<"items"> });
+  };
+  
   const data: TweetItem[] = useMemo(() => {
     if (!items) return [];
     return items.map((item: any) => ({
@@ -105,14 +112,43 @@ export const ResultsScreen = ({ route }: Props) => {
               </Text>
             </View>
           }
-          renderItem={({ item }) => <ContentCard item={item} />}
+          renderItem={({ item }) => <ContentCard item={item} onDelete={deleteItem} />}
         />
       )}
     </SafeAreaView>
   );
 };
 
-const ContentCard = ({ item }: { item: TweetItem }) => {
+const ContentCard = ({ item, onDelete }: { item: TweetItem; onDelete: (id: string) => Promise<void> }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Item",
+      "Are you sure you want to delete this item?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await onDelete(item.id);
+            } catch (error) {
+              console.error("Failed to delete item", error);
+              Alert.alert("Error", "Failed to delete item. Please try again.");
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (item.isLoading) {
     return (
       <View style={styles.card}>
@@ -125,15 +161,37 @@ const ContentCard = ({ item }: { item: TweetItem }) => {
   if (item.error) {
     return (
       <View style={[styles.card, styles.errorCard]}>
-        <Text style={styles.errorText}>{item.error}</Text>
+        <View style={styles.errorHeader}>
+          <Text style={styles.errorText}>{item.error}</Text>
+          <TouchableOpacity
+            onPress={handleDelete}
+            disabled={isDeleting}
+            style={styles.deleteButton}
+          >
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.card}>
-      <Text style={styles.categoryPill}>{item.category}</Text>
-      <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+      <View style={styles.cardHeader}>
+        <View>
+          <Text style={styles.categoryPill}>{item.category}</Text>
+          <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleDelete}
+          disabled={isDeleting}
+          style={styles.deleteButton}
+        >
+          <Text style={styles.deleteButtonText}>
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Text>
+        </TouchableOpacity>
+      </View>
       {item.tweetUrl && <TweetWebView tweetUrl={item.tweetUrl} />}
       <Text style={styles.originalText}>{item.originalText}</Text>
 
@@ -299,6 +357,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
     marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#fee2e2",
+  },
+  deleteButtonText: {
+    color: "#dc2626",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  errorHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 12,
